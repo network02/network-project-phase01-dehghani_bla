@@ -1,0 +1,11 @@
+﻿Build started 12/07/2023 11:04:49 PM.
+     1>Project "D:\Network Poject Phase 1\nmap\nmap\nmap.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         E:\vs2013\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Source.cpp
+         Source.cpp
+     1>d:\network poject phase 1\nmap\nmap\source.cpp(1): fatal error C1083: Cannot open include file: 'sys\socket.h': No such file or directory
+     1>Done Building Project "D:\Network Poject Phase 1\nmap\nmap\nmap.vcxproj" (Build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:03.20
