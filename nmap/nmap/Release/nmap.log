@@ -1,16 +1,16 @@
-﻿Build started 12/09/2023 04:54:28 PM.
-     1>Project "D:\Network Poject Phase 1\nmap\nmap\nmap.vcxproj" on node 2 (Build target(s)).
+﻿Build started 12/12/2023 05:37:00 PM.
+     1>Project "D:\Network Poject Phase 1\nmap\nmap\nmap.vcxproj" on node 2 (Rebuild target(s)).
      1>ClCompile:
          E:\vs2013\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Source.cpp
          Source.cpp
-     1>Source.cpp(53): warning C4101: 'serverPortNumber' : unreferenced local variable
+     1>Source.cpp(52): warning C4101: 'serverPortNumber' : unreferenced local variable
        Link:
          E:\vs2013\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\Network Poject Phase 1\nmap\Release\nmap.exe" /INCREMENTAL:NO /NOLOGO ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\Network Poject Phase 1\nmap\Release\nmap.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\Network Poject Phase 1\nmap\Release\nmap.lib" /MACHINE:X86 /SAFESEH Release\Source.obj
          Generating code
          Finished generating code
          nmap.vcxproj -> D:\Network Poject Phase 1\nmap\Release\nmap.exe
-     1>Done Building Project "D:\Network Poject Phase 1\nmap\nmap\nmap.vcxproj" (Build target(s)).
+     1>Done Building Project "D:\Network Poject Phase 1\nmap\nmap\nmap.vcxproj" (Rebuild target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:01.82
+Time Elapsed 00:00:04.88

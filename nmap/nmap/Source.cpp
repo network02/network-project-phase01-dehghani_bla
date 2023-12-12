@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <limits.h>
 
-int init_tcp_connection/* creates a socket and place it's file descriptor in sourceSocket and connects to destination !*/
+int tcp_connection_init/* creates a socket and place it's file descriptor in sourceSocket and connects to destination !*/
 (SOCKET &sourceSocket, char destinationIpAddr[16], unsigned short destinationPortNumber) ; 
 void mainMenu();
 int bounded_port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAddr); // scan a host with ip=ipAddr and ports from lowerBound to upperBound
@@ -15,7 +15,7 @@ int main()
 	return (0);
 }
 
-int init_tcp_connection(SOCKET &sourceSocket , char destinationIpAddr[16], unsigned short destinationPortNumber) 
+int tcp_connection_init(SOCKET &sourceSocket , char destinationIpAddr[16], unsigned short destinationPortNumber) 
 {
 	//Start up Winsock…
 	WSADATA wsadata;
@@ -47,12 +47,14 @@ int init_tcp_connection(SOCKET &sourceSocket , char destinationIpAddr[16], unsig
 
 void mainMenu()
 {
-	
 	int select;
 	char serverIpAddr[16], serverHostName[50];
 	unsigned short serverPortNumber , lowPN , highPN;
-	int onlineStatus;
+	int onlineStatus , status;
 	char *ip;
+	char getPost[32];
+	char receiveItem[1024];
+	SOCKET sourceSocket;
 	do
 	{
 		system("CLS");
@@ -60,7 +62,7 @@ void mainMenu()
 		puts("1_ online test with IP address .");
 		puts("2_ online test with host name .");
 		puts("3_ port scanning .");
-		puts("4_ get and post http request .");
+		puts("4_ get and post http simulator with server.py .");
 		puts("other : exit");
 		puts("please select one choices above and enter its number :");
 		scanf_s("%d", &select);
@@ -106,7 +108,31 @@ void mainMenu()
 			system("pause");
 			break;
 		case 4:
-
+			puts("Enter 'GET user_id' or 'POST user_name user_age' to simualte a request : ");
+			fflush(stdin);
+			gets_s(getPost,32);
+			tcp_connection_init(sourceSocket, "127.0.0.1", 8080);
+			if (sourceSocket == SOCKET_ERROR){
+				puts("can not connect to server!");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			status=send(sourceSocket, getPost, 32 , 0);
+			if (status == SOCKET_ERROR){
+				puts("can not send http request!");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			status=recv(sourceSocket, receiveItem, 1024, 0);
+			if (status == SOCKET_ERROR){
+				puts("can not receive http response!");
+				system("pause");
+				exit(EXIT_FAILURE);
+			}
+			puts("response from the server:");
+			puts(receiveItem);
+			closesocket(sourceSocket);
+			WSACleanup();
 			system("pause");
 			break;
 		default:
@@ -120,19 +146,46 @@ void mainMenu()
 
 int bounded_port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAddr)
 {
-	int i;
+	int i=0;
 	int onlineStatus = 0; // was host online? 
 	int connectionStatus; // was connection successful ?
-	SOCKET sourceSocket;
-	for (i = lowerBound; i <= upperBound; i++)
+	//Start up Winsock…
+	WSADATA wsadata;
+
+	int error = WSAStartup(0x0202, &wsadata);
+
+	//Did something happen?
+	if (error)
+		return false;
+
+	//Did we get the right Winsock version?
+	if (wsadata.wVersion != 0x0202)
 	{
-		connectionStatus = init_tcp_connection(sourceSocket, ipAddr, (unsigned short)i);
-		closesocket(sourceSocket);
+		WSACleanup(); //Clean up Winsock
+		return false;
+	}
+	SOCKET sourceSocket;
+	sourceSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+	if (sourceSocket == INVALID_SOCKET){
+		puts("can not creat socket!");
+		system("pause");
+		exit(EXIT_FAILURE);
+	}
+	struct sockaddr_in serverAddr;
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_addr.S_un.S_addr = inet_addr(ipAddr);
+	for (i = lowerBound; i <= upperBound; i++)
+	{	
+		serverAddr.sin_port = htons((unsigned short)i);
+		connectionStatus = connect(sourceSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 		if (connectionStatus != SOCKET_ERROR) {
 			onlineStatus = 1;
 			break;
 		}
+		printf("<%s:%d> is closed!\n", ipAddr, i);
 	}
+	closesocket(sourceSocket);
+	WSACleanup();
 	return onlineStatus;
 }
 
@@ -170,5 +223,6 @@ char *get_ip_by_hostname(char *hostName)
 	address = (in_addr *)(x->h_addr_list); // extracting ip address from dns request
 	strcpy_s(ipAddr ,16, inet_ntoa(*address)); // convert ip address from network format to address (human readable) format
 	// free(x);          // dns hostent data is static please read <How does `gethostbyname` return `struct hostent *` without requiring the caller to release the resource?>
+	WSACleanup();
 	return ipAddr;
 }
