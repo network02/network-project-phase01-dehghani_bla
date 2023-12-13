@@ -1,12 +1,14 @@
 #include<winsock.h>
 #include <stdio.h>
 #include <limits.h>
+#include <map>
 
 int tcp_connection_init/* creates a socket and place it's file descriptor in sourceSocket and connects to destination !*/
 (SOCKET &sourceSocket, char destinationIpAddr[16], unsigned short destinationPortNumber) ; 
 void mainMenu();
-int bounded_port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAddr); // scan a host with ip=ipAddr and ports from lowerBound to upperBound
+int host_online_test(unsigned short lowerBound, unsigned short upperBound, char *ipAddr); // scan a host with ip=ipAddr and ports from lowerBound to upperBound
 char *get_ip_by_hostname(char *hostName); // return (malloc-ed string) ip addres in standard format with . (NULL if host was not available);
+void port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAddr);
 
 // client program
 int main()
@@ -71,7 +73,7 @@ void mainMenu()
 		case 1:
 			puts("server ip addres ra vared konid(be forme <255.255.255.255> ) :");
 			scanf_s("%s", serverIpAddr, 16);
-			onlineStatus = bounded_port_scan(0, USHRT_MAX, serverIpAddr);
+			onlineStatus = host_online_test(0, USHRT_MAX, serverIpAddr);
 			if (onlineStatus == 1)
 				puts("server is online !");
 			else
@@ -84,9 +86,10 @@ void mainMenu()
 			ip=get_ip_by_hostname(serverHostName);
 			if (ip == NULL){
 				printf("%s is unavailable\n", serverHostName);
+				system("pause");
 				exit(EXIT_FAILURE);
 			}
-			onlineStatus = bounded_port_scan(0, USHRT_MAX, ip);
+			onlineStatus = host_online_test(0, USHRT_MAX, ip);
 			if (onlineStatus ==1)
 				puts("server is online !");
 			else
@@ -100,11 +103,7 @@ void mainMenu()
 			puts("please enter port number low and high for scan :");
 			scanf_s("%hu", &lowPN);
 			scanf_s("%hu", &highPN);
-			onlineStatus = bounded_port_scan(lowPN, highPN, serverIpAddr);
-			if (onlineStatus == 1)
-				puts("server is online !");
-			else
-				puts("server is offline !");
+			port_scan(lowPN, highPN, serverIpAddr);
 			system("pause");
 			break;
 		case 4:
@@ -144,7 +143,7 @@ void mainMenu()
 }
 
 
-int bounded_port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAddr)
+int host_online_test(unsigned short lowerBound, unsigned short upperBound, char *ipAddr)
 {
 	int i=0;
 	int onlineStatus = 0; // was host online? 
@@ -182,7 +181,7 @@ int bounded_port_scan(unsigned short lowerBound, unsigned short upperBound, char
 			onlineStatus = 1;
 			break;
 		}
-		printf("<%s:%d> is closed!\n", ipAddr, i);
+		printf("<%s:%d>\t", ipAddr, i);
 	}
 	closesocket(sourceSocket);
 	WSACleanup();
@@ -200,7 +199,7 @@ char *get_ip_by_hostname(char *hostName)
 	//Start up Winsock…
 	WSADATA wsadata;
 
-	int error = WSAStartup(0x0202, &wsadata);
+	int error = WSAStartup(0x0202, &wsadata); // MICROSOFT  documentation : WSAStartup(MAKEWORD(2,2), &wsaData);
 
 	//Did something happen?
 	if (error)
@@ -225,4 +224,55 @@ char *get_ip_by_hostname(char *hostName)
 	// free(x);          // dns hostent data is static please read <How does `gethostbyname` return `struct hostent *` without requiring the caller to release the resource?>
 	WSACleanup();
 	return ipAddr;
+}
+
+struct port_service{
+	unsigned short portNumber;
+	char service[8];
+};
+
+std::map<unsigned short, char *> projectServices = { { 20, "ftp" }, { 21, "ftp" }, { 22, "ssh" }, { 25, "SMTP" }, { 53, "DNS" }, { 80, "HTTP" }, { 123, "NTP" }, { 443, "HTTPS" } };
+
+
+void port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAddr)
+{
+	int status;
+	WSADATA wsadata;
+	int error = WSAStartup(0x0202, &wsadata); // MICROSOFT  documentation : WSAStartup(MAKEWORD(2,2), &wsaData);
+	if (error){
+		WSACleanup();
+		exit(EXIT_FAILURE);
+	}
+	if (wsadata.wVersion != 0x0202)
+	{
+		WSACleanup(); //Clean up Winsock
+		exit(EXIT_FAILURE);
+	}
+	SOCKET connectionSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+	if (connectionSocket == INVALID_SOCKET){
+		puts("can't create socket!");
+		exit(EXIT_FAILURE);
+	}
+	int i;
+	struct sockaddr_in serverAddr;
+	serverAddr.sin_addr.S_un.S_addr = inet_addr(ipAddr);
+	serverAddr.sin_family = AF_INET;
+	for (i = lowerBound; i <= upperBound; i++)
+	{
+		serverAddr.sin_port = (unsigned short)i;
+		status=connect(connectionSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
+		if (status == SOCKET_ERROR)
+		{
+			printf("%s:%d is closed!", ipAddr, i);
+		}
+		else
+		{
+			printf("%s:%d is open!");
+			printf("\t -service : %s", projectServices[i]);
+		}
+		putchar('\n');
+	}
+	closesocket(connectionSocket);
+	WSACleanup();
+	
 }
