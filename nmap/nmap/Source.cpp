@@ -7,7 +7,7 @@ int tcp_connection_init/* creates a socket and place it's file descriptor in sou
 (SOCKET &sourceSocket, char destinationIpAddr[16], unsigned short destinationPortNumber) ; 
 void mainMenu();
 int host_online_test(unsigned short lowerBound, unsigned short upperBound, char *ipAddr); // scan a host with ip=ipAddr and ports from lowerBound to upperBound
-char *get_ip_by_hostname(char *hostName); // return (malloc-ed string) ip addres in standard format with . (NULL if host was not available);
+void get_ip_by_hostname(char *hostName , char *ipAddr); // copy  ip addres in standard format to ip . (NULL string (with \0 at beginning of it) if host was not available);
 void port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAddr);
 
 // client program
@@ -53,7 +53,6 @@ void mainMenu()
 	char serverIpAddr[16], serverHostName[50];
 	unsigned short serverPortNumber , lowPN , highPN;
 	int onlineStatus , status;
-	char *ip;
 	char getPost[32];
 	char receiveItem[1024];
 	SOCKET sourceSocket;
@@ -71,30 +70,48 @@ void mainMenu()
 		switch (select)
 		{
 		case 1:
-			puts("server ip addres ra vared konid(be forme <255.255.255.255> ) :");
-			scanf_s("%s", serverIpAddr, 16);
-			onlineStatus = host_online_test(0, USHRT_MAX, serverIpAddr);
+		case 2:
+			if (select == 1){
+				puts("server ip addres ra vared konid(be forme <255.255.255.255> ) :");
+				scanf_s("%s", serverIpAddr, 16);
+			}
+			else {
+				puts("server_host_name ra vared konid(e.g. <google.com>) :");
+				scanf_s("%s", serverHostName, 50);
+				get_ip_by_hostname(serverHostName , serverIpAddr);
+				if (serverIpAddr[0] == 0){
+					printf("%s is unavailable\n", serverHostName);
+					system("pause");
+					exit(EXIT_FAILURE);
+				}
+			}
+			//onlineStatus = host_online_test(0, USHRT_MAX, serverIpAddr);			for full scan and is very slow!
+			onlineStatus = host_online_test(20, 25, serverIpAddr); // ftp ssh telnet and smtp
+			if (onlineStatus == 1){
+				puts("server is online !");
+				goto exitChecking;
+			}
+			onlineStatus = host_online_test(53, 53, serverIpAddr); // dns
+			if (onlineStatus == 1){
+				puts("server is online !");
+				goto exitChecking;
+			}
+			onlineStatus = host_online_test(80, 80, serverIpAddr); // http
+			if (onlineStatus == 1){
+				puts("server is online !");
+				goto exitChecking;
+			}
+			onlineStatus = host_online_test(123, 123, serverIpAddr);// ntp
+			if (onlineStatus == 1){
+				puts("server is online !");
+				goto exitChecking;
+			}
+			onlineStatus = host_online_test(443, 443, serverIpAddr); // https
 			if (onlineStatus == 1)
 				puts("server is online !");
 			else
 				puts("server is offline !");
-			system("pause");
-			break;
-		case 2:
-			puts("server_host_name ra vared konid(e.g. <google.com>) :");
-			scanf_s("%s", serverHostName,50);
-			ip=get_ip_by_hostname(serverHostName);
-			if (ip == NULL){
-				printf("%s is unavailable\n", serverHostName);
-				system("pause");
-				exit(EXIT_FAILURE);
-			}
-			onlineStatus = host_online_test(0, USHRT_MAX, ip);
-			if (onlineStatus ==1)
-				puts("server is online !");
-			else
-				puts("server is offline !");
-			free(ip);
+		exitChecking:
 			system("pause");
 			break;
 		case 3:
@@ -181,7 +198,7 @@ int host_online_test(unsigned short lowerBound, unsigned short upperBound, char 
 			onlineStatus = 1;
 			break;
 		}
-		printf("<%s:%d>\t", ipAddr, i);
+		printf("<%s:%d>\n", ipAddr, i);
 	}
 	closesocket(sourceSocket);
 	WSACleanup();
@@ -190,9 +207,8 @@ int host_online_test(unsigned short lowerBound, unsigned short upperBound, char 
 
 
 
-char *get_ip_by_hostname(char *hostName)
+void get_ip_by_hostname(char *hostName , char *ipAddr)
 {
-	char *ipAddr = (char *) malloc(sizeof(char) * 16);
 	struct hostent *x; // a pointer to DNS response data
 	in_addr *address;
 
@@ -215,15 +231,14 @@ char *get_ip_by_hostname(char *hostName)
 	x = gethostbyname(hostName); // DNS request for ip address
 	if (x == NULL)
 	{
-		free(ipAddr);
-		return NULL;
+		ipAddr[0] = '\0';
+		return ;
 	}
 	//printf("%d", h_errno)	;					//for debugging
 	address = (in_addr *)(x->h_addr_list); // extracting ip address from dns request
 	strcpy_s(ipAddr ,16, inet_ntoa(*address)); // convert ip address from network format to address (human readable) format
 	// free(x);          // dns hostent data is static please read <How does `gethostbyname` return `struct hostent *` without requiring the caller to release the resource?>
 	WSACleanup();
-	return ipAddr;
 }
 
 struct port_service{
@@ -259,7 +274,7 @@ void port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAdd
 	serverAddr.sin_family = AF_INET;
 	for (i = lowerBound; i <= upperBound; i++)
 	{
-		serverAddr.sin_port = (unsigned short)i;
+		serverAddr.sin_port = htons((unsigned short)i);
 		status=connect(connectionSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 		if (status == SOCKET_ERROR)
 		{
@@ -267,7 +282,7 @@ void port_scan(unsigned short lowerBound, unsigned short upperBound, char *ipAdd
 		}
 		else
 		{
-			printf("%s:%d is open!");
+			printf("%s:%d is open!" , ipAddr , i);
 			printf("\t -service : %s", projectServices[i]);
 		}
 		putchar('\n');
